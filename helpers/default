@@ -288,7 +288,7 @@ run_as () {
   log "$cmd"
   # sudo -u $user -H -s /bin/bash -c "$cmd"
   # sudo -u $user -s /bin/bash -i "$cmd"
-  su -c "$cmd" -s /bin/bash $user
+  su -c "$cmd" -s /bin/bash - $user
 }
 
 #
