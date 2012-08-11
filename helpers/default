@@ -262,9 +262,9 @@ add_user () {
     [ "$pass" == "" ] && pass=generate_password
 
     if [[ "$args" != *nohome* ]]; then
-      /usr/sbin/useradd --password `openssl passwd -crypt $pass` --create-home $user
+      /usr/sbin/useradd --password `openssl passwd -crypt $pass` --create-home --shell /bin/bash $user
     else
-      /usr/sbin/useradd --password `openssl passwd -crypt $pass` $user
+      /usr/sbin/useradd --password `openssl passwd -crypt $pass` --shell /bin/bash $user
     fi
   fi
 }
