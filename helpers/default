@@ -189,7 +189,7 @@ test_package_installed () {
   fi
 
   if [ "$PACKAGE_MANAGER" == 'apt-get' ]; then
-    dpkg -l $1
+    dpkg -s $1
     return $?
   fi
 
