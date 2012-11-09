@@ -189,7 +189,7 @@ test_package_installed () {
   fi
 
   if [ "$PACKAGE_MANAGER" == 'apt-get' ]; then
-    dpkg -l $1
+    dpkg -s $1
     return $?
   fi
 
@@ -262,9 +262,9 @@ add_user () {
     [ "$pass" == "" ] && pass=generate_password
 
     if [[ "$args" != *nohome* ]]; then
-      /usr/sbin/useradd --password `openssl passwd -crypt $pass` --create-home $user
+      /usr/sbin/useradd --password `openssl passwd -crypt $pass` --create-home --shell /bin/bash $user
     else
-      /usr/sbin/useradd --password `openssl passwd -crypt $pass` $user
+      /usr/sbin/useradd --password `openssl passwd -crypt $pass` --shell /bin/bash $user
     fi
   fi
 }
@@ -288,7 +288,7 @@ run_as () {
   log "$cmd"
   # sudo -u $user -H -s /bin/bash -c "$cmd"
   # sudo -u $user -s /bin/bash -i "$cmd"
-  su -c "$cmd" -s /bin/bash $user
+  su -c "$cmd" -s /bin/bash - $user
 }
 
 #
