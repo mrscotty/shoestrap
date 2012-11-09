@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if ! is_installed $*; then
+  local user=$2
+  local pubkey=$3
+  echo "user: $user"
+  echo "pubkey: $pubkey"
+  mkdir -p /home/$user/.ssh
+  add_line $pubkey /home/$user/.ssh/authorized_keys
+  set_installed $*
+fi
