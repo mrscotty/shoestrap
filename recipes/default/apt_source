@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if ! is_installed $*; then
+    local srcname=$2
+  mv /etc/apt/sources.list /etc/apt/sources.bak
+  copy $srcname /etc/apt/sources.list
+  set_installed $*
+fi
