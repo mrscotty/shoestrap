@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Recipe for adding an entry to /etc/hosts
+#
+# Usage:
+#
+#   recipe 'etc_hosts' 'IP Address' 'host names'
+
+if ! is_installed $*; then
+  local ip=$2
+  local hosts=$3
+  add_line "$ip $hosts" /etc/hosts
+  set_installed $*
+fi

@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# Install perlbrew (as the given user)
+#
+# Usage:
+#
+#   recipe 'perlbrew' '<username>'
+
+
+if ! is_installed $*; then
+    local user=$1
+
+    if [ $# -eq 0 ]; then
+        log "WARN: no name given for perlbrew recipe."
+        return 0
+    fi
+
+
+    run_as $user 'curl -k --output ~/perlbrewinst.sh -L http://install.perlbrew.pl'
+    run_as $user '~/perlbrewinst.sh'
+
+    add_line "source ~/perl5/perlbrew/etc/bashrc" ~$user/.profile
+
+    rc='~/perl5/perlbrew/etc/bashrc'
+
+    # Determine latest maintenance version
+    mirr='http://ftp.gwdg.de/pub/languages/perl/CPAN'
+    file='src/5.0/latest_maint'
+
+    latest_maint=`curl -kL $mirr/$file`
+    run_as $user "source $rc && perlbrew install $latest_maint"
+    run_as $user "source $rc && perlbrew switch $latest_maint"
+
+    run_as $user "source $rc && perlbrew install-cpanm"
+
+    run_as $user "source $rc && cpanm YAML::Any YAML::XS"
+
+    set_installed $*
+fi
