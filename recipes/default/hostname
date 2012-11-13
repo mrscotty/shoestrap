@@ -10,7 +10,8 @@ if ! is_installed $*; then
     local host="$2"
 
     echo "$host" > /etc/hostname
-    perl -i.bak -pe 's/^127.0.1.1\s/127.0.1.1\t$host/;' /etc/hosts
+    hostname "$host"
+    perl -i.bak -pe "s/^127.0.1.1\s.+/127.0.1.1\t$host/;" /etc/hosts
 
     set_installed $*
 fi
