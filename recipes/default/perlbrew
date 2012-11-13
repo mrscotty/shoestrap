@@ -8,7 +8,7 @@
 
 
 if ! is_installed $*; then
-    local user=$1
+    local user="$2"
 
     if [ $# -eq 0 ]; then
         log "WARN: no name given for perlbrew recipe."
