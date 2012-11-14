@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if ! is_installed $*; then
+    local user=$2
+
+    run_as "$user" 'git clone https://github.com/mrscotty/minitrav.git minitrav'
+
+    curl \
+        -o minitrav.tar.gz \
+        -L \
+        https://github.com/mrscotty/minitrav/archive/master.tar.gz
+    tar xzf minitrav.tar.gz
+    mv minitrav-master minitrav
+
+    set_installed $*
+fi
