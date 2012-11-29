@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# Install local, application-specific perl
+#
+# Usage:
+#
+#   recipe 'local-perl' '<install-prefix>' ['<perl-version>']
+
+
+if ! is_installed $*; then
+    local inst_prefix="$2"
+    local perl_ver="$3"
+
+    if [ $# -eq 0 ]; then
+        log "WARN: no install-prefix given for local-perl recipe."
+        return 0
+    fi
+
+
+    # If no perl version was supplied, fetch the latest maint
+    if [ -z "$perl_ver" ]; then
+        # Determine latest maintenance version
+        mirr='http://ftp.gwdg.de/pub/languages/perl/CPAN'
+        file='src/5.0/latest_maint'
+        perl_ver=`curl -kL $mirr/$file`
+    fi
+
+    perl_tarball=perl-$perl_ver.tar.gz
+    perl_srcdir=perl-$perl_ver
+
+    wget http://www.cpan.org/src/5.0/$perl_tarball
+    tar -xzf $perl_tarball && \
+        cd $perl_srcdir && \
+        ./Configure -des -Dprefix=$inst_prefix && \
+        make && \
+        make test && \
+        make install
+
+#    run_as $user "source $rc && perlbrew install-cpanm"
+
+#    run_as $user "source $rc && cpanm YAML::Any YAML::XS"
+
+    set_installed $*
+fi
