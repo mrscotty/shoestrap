@@ -40,8 +40,6 @@ if ! is_installed $*; then
     ## Certificates
     ##
 
-    set -x
-
     CFGFILE=`mktemp /tmp/req.XXXXXX`
 #    cat <<EOF >$CFGFILE
 #[ req ]
