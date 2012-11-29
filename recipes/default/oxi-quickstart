@@ -1,0 +1,163 @@
+#!/bin/bash
+#
+# oxi-quickstart -- based on the quickstart document
+#
+# Use only on Debian Squeeze at the moment!!!
+#
+# To run without cookbook:
+#
+#   cd /shoestrap
+#   . helpers/initialize
+#   recipe 'oxi-quickstart'
+#
+
+CA_ONE_BASE="/etc/openxpki/ssl/ca-one"
+CA_ONE_SIGNER_KEY="$CA_ONE_BASE/ca-one-signer-1.pem"
+CA_ONE_SIGNER_CRT="$CA_ONE_BASE/ca-one-signer-1.crt"
+CA_ONE_SIGNER_PASS="root"
+CA_ONE_VAULT_KEY="$CA_ONE_BASE/ca-one-vault-1.pem"
+CA_ONE_VAULT_CRT="$CA_ONE_BASE/ca-one-vault-1.crt"
+CA_ONE_VAULT_PASS="root"
+
+if ! is_installed $*; then
+
+    ##
+    ## Software Packages
+    ##
+    if [ ! -f /etc/apt/sources.list.d/openxpki.list ]; then
+        echo "deb http://packages.openxpki.org/debian/ squeeze/binary/" \
+            > /etc/apt/sources.list.d/openxpki.list
+        package_update
+        package 'mysql-server'
+        aptitude install --allow-untrusted --assume-yes \
+            libopenxpki-perl libopenxpki-client-html-mason-perl
+    fi
+    if [ ! -d "$CA_ONE_BASE" ]; then
+        mkdir -p "$CA_ONE_BASE"
+    fi
+
+    ##
+    ## Certificates
+    ##
+
+    set -x
+
+    CFGFILE=`mktemp /tmp/req.XXXXXX`
+#    cat <<EOF >$CFGFILE
+#[ req ]
+#output_password = mypass
+#distinguished_name = req_distinguished_name
+#prompt = no
+#req_extensions = v3_ext
+#
+#[ req_distinguished_name ]
+#2.DC=org
+#1.DC=openxpki
+#O   = OpenXPKI Test
+#CN  = test.openxpki.org
+#
+#[ v3_ext ]
+#subjectKeyIdentifier = hash
+#EOF
+    cp /usr/lib/ssl/openssl.cnf $CFGFILE
+#        -e '$_ = "0.organizationName_default = OpenXPKI Test Demo CA\n" if m/^0.organizatonName_default/;' \
+    perl -i.bak -p \
+        -e '$_ .= "prompt = no\n" if m/^distinguished_name/;' \
+        -e '$_ = "countryName = XX\n" if m/^countryName\s/;' \
+        -e '$_ = "stateOrProvinceName = n/a\n" if m/^steateOrProvinceName\s/;' \
+        -e '$_ = "localityName = n/a\n" if m/^localityName\s/;' \
+        -e '$_ = "0.organizationName = OpenXPKI Demo Test CA\n" if m/^0\.organizationName\s/;' \
+        -e '$_ = "organizationalUnitName = n/a\n" if m/^organizationalUnitName\s/;' \
+        -e '$_ = "commonName = test.openxpki.org\n" if m/^commonName\s/;' \
+        -e '$_ = "emailAddress = openxpki@test.openxpki.org\n" if m/^emailAddress\s/;' \
+        -e '$_ = "" if m/^\S+_default\s/;' \
+        -e '$_ = "" if m/^\S+_max\s/;' \
+        -e '$_ = "" if m/^\S+_min\s/;' \
+        $CFGFILE
+
+    # Create CA certificate
+    if [ ! -f $CA_ONE_SIGNER_CRT ]; then
+        openssl req -newkey rsa:2048 -new -days 1830 -x509 \
+            -config $CFGFILE \
+            -keyout $CA_ONE_SIGNER_KEY \
+            -out $CA_ONE_SIGNER_CRT \
+            -passout pass:"$CA_ONE_SIGNER_PASS"
+    fi
+
+    # Create key for internal datasafe (not exposed externally)
+    if [ ! -f $CA_ONE_VAULT_CRT ]; then
+        openssl req -newkey rsa:2048 -new -days 400 -x509 \
+            -config $CFGFILE \
+            -keyout $CA_ONE_VAULT_KEY \
+            -out $CA_ONE_VAULT_CRT \
+            -passout pass:"$CA_ONE_VAULT_PASS"
+    fi
+
+    ##
+    ## Database
+    ##
+    found_db=`echo "show databases;" | mysql --user root | grep -c openxpki`
+    if [ "$found_db" = "0" ]; then
+    mysql --user root <<END_OF_SQL
+CREATE database openxpki;
+CREATE USER 'openxpki'@'localhost' IDENTIFIED BY 'openxpki';
+GRANT ALL ON openxpki.* TO 'openxpki'@'localhost';
+flush privileges;
+END_OF_SQL
+    
+
+        openxpkiadm loadcfg
+        openxpkiadm initdb
+    fi
+
+
+    CERT_ID_SIGNER=`openssl x509 \
+        -in $CA_ONE_SIGNER_CRT \
+        -inform PEM -outform der \
+        | openssl dgst -sha1 -binary \
+        | openssl enc -a -e \
+        | tr "+/" "-_" | tr -d "="`
+
+    found_signer_cert=`openxpkiadm certificate list | grep -c "$CERT_ID_SIGNER"`
+    if [ "$found_signer_cert" = "0" ]; then
+        openxpkiadm certificate import --file $CA_ONE_SIGNER_CRT
+    fi
+
+    # Note: the alias is hard-coded and doesn't do any fancy checking,
+    # so if your system is messy, this probably won't work, but errs on
+    # the safe side of just not doing anything (for the given alias name)
+
+    found_signer_alias=`openxpkiadm certificate list | grep -c "ca-one-signer-1"`
+    if [ "$found_signer_alias" = "0" ]; then
+        openxpkiadm alias --realm ca-one --token certsign \
+            --identifier $CERT_ID_SIGNER
+    fi
+
+    CERT_ID_VAULT=`openssl x509 \
+        -in $CA_ONE_VAULT_CRT \
+        -inform PEM -outform der \
+        | openssl dgst -sha1 -binary \
+        | openssl enc -a -e \
+        | tr "+/" "-_" | tr -d "="`
+    found_vault_cert=`openxpkiadm certificate list | grep -c "$CERT_ID_VAULT"`
+    if [ "$found_vault_cert" = "0" ]; then
+        openxpkiadm certificate import --file $CA_ONE_VAULT_CRT
+    fi
+
+    found_vault_alias=`openxpkiadm certificate list | grep -c "ca-one-vault-1"`
+    if [ "$found_vault_alias" = "0" ]; then
+        openxpkiadm alias --realm ca-one --token datasafe \
+            --identifier $CERT_ID_VAULT
+    fi
+
+    cat <<EOF
+
+    YOU CAN NOW START THE OPENXPI WITH:
+    
+        /etc/init.d/openxpkid start
+        /etc/init.d/apache2 restart
+
+EOF
+
+    set_installed $*
+fi
