@@ -1,11 +1,32 @@
 #!/bin/bash
+#
+# #### USAGE
+#
+# To install the default 'authorized_keys' file from assets/defaul
+#   recipe "target_user"
+#
+# or 
+#
+#   recipe "target_user" "name_of_auth_keys"
+
 
 if ! is_installed $*; then
-  echo $2
-  echo /home/$2/.ssh
-  mkdir -p /home/$2/.ssh
-  copy authorized_keys /home/$2/.ssh/
-  copy known_hosts /home/$2/.ssh/
-  chown -R $2:$2 /home/$2/.ssh
-  set_installed $*
+    local target_user="$2"
+    local auth_file="$3"
+
+    if [ -z "$auth_file" ]; then
+        auth_file="authorized_keys"
+    fi
+
+    local home_dir=`grep "^$target_user: /etc/passwd | awk -F: '{print $6}'`
+
+    log "DEBUG: setup_keys [target_user=$target_user]"
+    log "DEBUG: setup_keys [auth_file=$auth_file, home_dir=$home_dir]"
+    log "DEBUG: setup_keys [auth_file=$auth_file, home_dir=$home_dir]"
+
+    mkdir -p "$home_dir/.ssh"
+    copy "$auth_file" "$home_dir/.ssh/"
+    copy known_hosts "$home_dir/.ssh/"
+    chown -R $target_user:$target_user "$home_dir/.ssh"
+    set_installed $*
 fi
