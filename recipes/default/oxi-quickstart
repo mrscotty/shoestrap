@@ -18,6 +18,9 @@ CA_ONE_SIGNER_PASS="root"
 CA_ONE_VAULT_KEY="$CA_ONE_BASE/ca-one-vault-1.pem"
 CA_ONE_VAULT_CRT="$CA_ONE_BASE/ca-one-vault-1.crt"
 CA_ONE_VAULT_PASS="root"
+CA_ONE_SCEP_KEY="$CA_ONE_BASE/ca-one-scep-1.pem"
+CA_ONE_SCEP_CRT="$CA_ONE_BASE/ca-one-scep-1.crt"
+CA_ONE_SCEP_PASS="root"
 
 if ! is_installed $*; then
 
@@ -91,6 +94,15 @@ if ! is_installed $*; then
             -passout pass:"$CA_ONE_VAULT_PASS"
     fi
 
+    # Create key for SCEP
+    if [ ! -f $CA_ONE_SCEP_CRT ]; then
+        openssl req -newkey rsa:2048 -new -days 400 -x509 \
+            -config $CFGFILE \
+            -keyout $CA_ONE_SCEP_KEY \
+            -out $CA_ONE_SCEP_CRT \
+            -passout pass:"$CA_ONE_SCEP_PASS"
+    fi
+
     ##
     ## Database
     ##
@@ -146,6 +158,23 @@ END_OF_SQL
     if [ "$found_vault_alias" = "0" ]; then
         openxpkiadm alias --realm ca-one --token datasafe \
             --identifier $CERT_ID_VAULT
+    fi
+
+    CERT_ID_SCEP=`openssl x509 \
+        -in $CA_ONE_SCEP_CRT \
+        -inform PEM -outform der \
+        | openssl dgst -sha1 -binary \
+        | openssl enc -a -e \
+        | tr "+/" "-_" | tr -d "="`
+    found_scep_cert=`openxpkiadm certificate list | grep -c "$CERT_ID_SCEP"`
+    if [ "$found_scep_cert" = "0" ]; then
+        openxpkiadm certificate import --file $CA_ONE_SCEP_CRT
+    fi
+
+    found_scep_alias=`openxpkiadm certificate list | grep -c "ca-one-scep-1"`
+    if [ "$found_scep_alias" = "0" ]; then
+        openxpkiadm alias --realm ca-one --token datasafe \
+            --identifier $CERT_ID_SCEP
     fi
 
     cat <<EOF
