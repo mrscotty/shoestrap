@@ -18,14 +18,14 @@ if ! is_installed $*; then
         auth_file="authorized_keys"
     fi
 
-    local home_dir=`grep "^$target_user: /etc/passwd | awk -F: '{print $6}'`
+    local home_dir=`grep "^$target_user:" /etc/passwd | awk -F: '{print $6}'`
 
     log "DEBUG: setup_keys [target_user=$target_user]"
     log "DEBUG: setup_keys [auth_file=$auth_file, home_dir=$home_dir]"
     log "DEBUG: setup_keys [auth_file=$auth_file, home_dir=$home_dir]"
 
     mkdir -p "$home_dir/.ssh"
-    copy "$auth_file" "$home_dir/.ssh/"
+    copy "$auth_file" "$home_dir/.ssh/authorized_keys"
     copy known_hosts "$home_dir/.ssh/"
     chown -R $target_user:$target_user "$home_dir/.ssh"
     set_installed $*
