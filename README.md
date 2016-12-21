@@ -141,7 +141,20 @@ point for your own Shoestrap project.
       [cookbook1]          # Recipes for 'cookbook1'. Overrides anything in [default].
         recipe1
     cookbook1              # The cookbook script itself. This is your point of entry to Shoestrap
+    [local]                # Separate path for *local* files to keep them separate from upstream
+      [assets]             # *same structure as [assets] above*
+      [recipes]            # *same structure as [recipes] above*
+      [books]              # A directory for your local *book* definitions (this could also be in topdir
 
+## Local Modifications
+
+If you plan on keeping some local modifications out of the upstream contributions, 
+you can specify a *local* directory tree for the local assets and recipes (and also
+books). You still need to track these in a separate branch or separate sub-repository
+and ensure your workflow does not accidentally push these to a public repo.
+
+By default, this is the *local/* directory in the shoestrap root. Override this with the 
+SHOESTRAP\_LOCAL environment variable.
 
 ## Compatibility
 

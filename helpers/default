@@ -11,6 +11,12 @@ else
     DIR="$SHOESTRAP_BASE"
 fi
 
+if [ -z "$SHOESTRAP_LOCAL" ]; then
+    LDIR="$DIR/local"
+else
+    LDIR="$SHOESTRAP_LOCAL"
+fi
+
 #
 # Run a given recipe.
 #
@@ -19,20 +25,29 @@ fi
 #
 recipe () {
   CURRENT_RECIPE_NAME=$1
-  DEFAULT_ASSETS_PATH="$DIR/assets/default/$CURRENT_RECIPE_NAME"
-  COOKBOOK_ASSETS_PATH="$DIR/assets/$COOKBOOK_NAME/$CURRENT_RECIPE_NAME"
-  local custom_recipe="$DIR/recipes/custom/$CURRENT_RECIPE_NAME"
-  local default_recipe="$DIR/recipes/default/$CURRENT_RECIPE_NAME"
+  ASSETS_PATH="$LDIR/assets/$COOKBOOK_NAME/$CURRENT_RECIPE_NAME"
+  ASSETS_PATH="$ASSETS_PATH:$DIR/assets/$COOKBOOK_NAME/$CURRENT_RECIPE_NAME"
+  ASSETS_PATH="$ASSETS_PATH:$LDIR/assets/default/$CURRENT_RECIPE_NAME"
+  ASSETS_PATH="$ASSETS_PATH:$DIR/assets/default/$CURRENT_RECIPE_NAME"
 
-  if [ -f $custom_recipe ]; then
-    log "Running recipe '$custom_recipe'..." 1
-    separator
-    . $custom_recipe
+  RECIPE_PATH="$LDIR/assets/$COOKBOOK_NAME/$CURRENT_RECIPE_NAME"
+  RECIPE_PATH="$RECIPE_PATH:$DIR/assets/$COOKBOOK_NAME/$CURRENT_RECIPE_NAME"
+  RECIPE_PATH="$RECIPE_PATH:$LDIR/assets/default/$CURRENT_RECIPE_NAME"
+  RECIPE_PATH="$RECIPE_PATH:$DIR/assets/default/$CURRENT_RECIPE_NAME"
 
-  elif [ -f $default_recipe ]; then
-    log "Running recipe '$default_recipe'..." 1
-    separator
-    . $default_recipe
+  local recipe_file
+
+  for i in $(echo "$RECIPE_PATH" | tr ':' '\n'); do
+      if [ -f $i ]; then
+          recipe_file=$i
+          break;
+      fi
+  done
+
+  if [ -n "$recipe_file" ]; then
+      log "Running recipe '$recipe_file'..." 1
+      separator
+      . $recipe_file
   else
     error "Could not find recipe for '$CURRENT_RECIPE_NAME'. Fail!"
   fi
@@ -234,16 +249,21 @@ command_exist () {
 # Copy a file from the assets folder to the specified location.
 #
 copy () {
-  local cookbook_assets_source="$COOKBOOK_ASSETS_PATH/$1"
-  local default_assets_source="$DEFAULT_ASSETS_PATH/$1"
+  #local cookbook_assets_source="$COOKBOOK_ASSETS_PATH/$1"
+  #local default_assets_source="$DEFAULT_ASSETS_PATH/$1"
+  local source_file
   local target=$2
 
-  if [ -f $cookbook_assets_source ]; then
-    log "Copying $cookbook_assets_source to $target..."
-    cp $cookbook_assets_source $target
-  elif [ -f $default_assets_source ]; then
-    log "Copying $default_assets_source to $target..."
-    cp $default_assets_source $target
+  for i in $(echo "$RECIPE_PATH" | tr ':' '\n'); do
+      if [ -f "$i/$1" ]; then
+          source_file="$i/$1"
+          break;
+      fi
+  done
+
+  if [ -n "$source_file" ]; then
+    log "Copying $source_file to $target..."
+    cp $source_file $target
   else
     error "Could not find '$1' to copy. Fail!"
   fi
