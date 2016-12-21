@@ -238,6 +238,45 @@ detect_package_manager () {
   return 0
 }
 
+detect_distrib_name () {
+    local distname='unknown'
+    if [ -f /etc/lsb-release ]; then
+        distname=`grep ^DISTRIB_ID= /etc/lsb-release`
+        distname=${distname#*=}
+    elif [ -f /etc/debian_version ]; then
+        distname="debian"
+    fi
+
+    echo "$distname"
+}
+
+detect_distrib_codename () {
+    local codename='unknown'
+    if [ -f /etc/lsb-release ]; then
+        codename=`grep ^DISTRIB_CODENAME= /etc/lsb-release`
+        codename=${codename#*=}
+    elif [ -f /etc/debian_version ]; then
+        debver=`cat /etc/debian_version`
+        # We're not going to list *all* of them here...
+        case $debver in
+            8.*)
+                codename=jessie
+                ;;
+            7.0.*)
+                codename=wheezy
+                ;;
+            6.0.*)
+                codename=squeeze
+                ;;
+            5.0.*)
+                codename=lenny
+                ;;
+        esac
+    fi
+
+    echo "$codename"
+}
+
 #
 # Determines if a command exist on the system.
 #
