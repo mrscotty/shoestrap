@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# oxi-qs-setup -- based on the quickstart document
+#
+# This script depends on a clean mysql and oxi code installation.
+#
+# Use only on Debian Squeeze at the moment!!!
+#
+# To run without cookbook:
+#
+#   cd /shoestrap
+#   . helpers/initialize
+#   recipe 'oxi-qs-setup'
+#
+
+CA_ONE_BASE="/etc/openxpki/ssl/ca-one"
+CA_ONE_SIGNER_KEY="$CA_ONE_BASE/ca-one-signer-1.pem"
+CA_ONE_SIGNER_CRT="$CA_ONE_BASE/ca-one-signer-1.crt"
+CA_ONE_SIGNER_PASS="root"
+CA_ONE_VAULT_KEY="$CA_ONE_BASE/ca-one-vault-1.pem"
+CA_ONE_VAULT_CRT="$CA_ONE_BASE/ca-one-vault-1.crt"
+CA_ONE_VAULT_PASS="root"
+CA_ONE_SCEP_KEY="$CA_ONE_BASE/ca-one-scep-1.pem"
+CA_ONE_SCEP_CRT="$CA_ONE_BASE/ca-one-scep-1.crt"
+CA_ONE_SCEP_PASS="root"
+OXI_ADM="openxpkiadm"
+
+if ! is_installed $*; then
+
+    ##
+    ## Database
+    ##
+    found_db=`echo "show databases;" | mysql --user root | grep -c openxpki`
+    if [ "$found_db" = "0" ]; then
+    mysql --user root <<END_OF_SQL
+CREATE database openxpki;
+CREATE USER 'openxpki'@'localhost' IDENTIFIED BY 'openxpki';
+GRANT ALL ON openxpki.* TO 'openxpki'@'localhost';
+flush privileges;
+END_OF_SQL
+    
+
+        zcat \
+            /usr/share/doc/libopenxpki-perl/examples/schema-mysql.sql.gz | \
+            mysql -u root openxpki
+    fi
+
+    /usr/share/doc/libopenxpki-perl/examples/sampleconfig.sh
+
+    cat <<EOF
+
+    YOU CAN NOW START THE OPENXPI WITH:
+    
+        /etc/init.d/openxpkid start
+        /etc/init.d/apache2 restart
+
+EOF
+
+    set_installed $*
+fi

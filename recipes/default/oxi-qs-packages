@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# oxi-pkgs-public -- OpenXPKI packages from packages.openxpki.org
+#
+# based on the quickstart document for OpenXPKI >= 1.13
+#
+# Tested on Vagrant box debian/jessie64
+#
+# To run without cookbook:
+#
+#   cd /shoestrap
+#   . helpers/initialize
+#   recipe 'oxi-quickstart'
+#
+
+if ! is_installed $*; then
+
+    ##
+    ## Software Packages
+    ##
+    if [ ! -f /etc/apt/sources.list.d/openxpki.list ]; then
+        codename=`detect_distrib_codename|tr "A-Z" "a-z"`
+        distname=`detect_distrib_name|tr "A-Z" "a-z"`
+
+        echo "deb http://packages.openxpki.org/$distname/ $codename release" \
+            > /etc/apt/sources.list.d/openxpki.list
+        package_update
+    fi
+
+    wget http://packages.openxpki.org/debian/Release.key -O - | apt-key add -
+    package 'mysql-server'
+    package 'libdbd-mysql-perl'
+    package 'libapache2-mod-fcgid'
+    package 'apache2.2-common'
+    /usr/sbin/a2enmod fcgid
+    package 'libopenxpki-perl'
+    package 'openxpki-i18n'
+    service apache2 restart
+
+    set_installed $*
+fi

@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# books/oxi-quickstart.book - OpenXPKI Quickstart
+#
+# Tested on debian/jessie64 vagrant box
+#
+# For use with Vagrant box debian/jessie64
+#
+#   cd /vagrant/shoestrap
+#   sudo books/oxi-quickstart.book SHOESTRAP_BASE=$(pwd)
+#
+
+vguest_user=vagrant
+
+. helpers/initialize
+
+recipe 'oxi-qs-packages'
+recipe 'oxi-qs-setup'
+
+finished
+
